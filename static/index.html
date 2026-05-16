@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crypto Pulse Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body>
+    <div class="aurora aurora-left"></div>
+    <div class="aurora aurora-right"></div>
+    <main class="page-shell">
+      <section class="hero panel">
+        <div>
+          <p class="eyebrow">Deployment of a dashboard with its own data pipeline</p>
+          <h1>Crypto Pulse</h1>
+          <p class="hero-copy">
+            A public-market dashboard for following price momentum, correlation, and leadership shifts across major crypto assets.
+          </p>
+        </div>
+        <div class="hero-actions">
+          <button id="refreshButton" class="refresh-button">Run Refresh</button>
+          <div class="status-block">
+            <span id="lastUpdated">Loading latest pipeline status...</span>
+            <span id="pipelineSource" class="status-chip"></span>
+          </div>
+        </div>
+      </section>
+
+      <section id="metricCards" class="card-grid"></section>
+
+      <section class="two-column-grid">
+        <article class="panel chart-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">30-day history</p>
+              <h2>Tracked asset price curves</h2>
+            </div>
+          </div>
+          <canvas id="historyChart"></canvas>
+        </article>
+
+        <article class="panel chart-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Market structure</p>
+              <h2>Market cap vs 24h movement</h2>
+            </div>
+          </div>
+          <canvas id="scatterChart"></canvas>
+        </article>
+      </section>
+
+      <section class="two-column-grid">
+        <article class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Leadership board</p>
+              <h2>Top gainers and laggards</h2>
+            </div>
+          </div>
+          <div class="leader-grid">
+            <div>
+              <h3>24h Gainers</h3>
+              <div id="gainersList" class="leader-list"></div>
+            </div>
+            <div>
+              <h3>24h Laggards</h3>
+              <div id="laggardsList" class="leader-list"></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Correlation map</p>
+              <h2>How the tracked assets move together</h2>
+            </div>
+          </div>
+          <div id="correlationHeatmap" class="heatmap"></div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Asset table</p>
+            <h2>Latest market snapshot</h2>
+          </div>
+        </div>
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Asset</th>
+                <th>Price</th>
+                <th>24h</th>
+                <th>7d</th>
+                <th>30d</th>
+                <th>Volatility</th>
+                <th>Market Cap</th>
+              </tr>
+            </thead>
+            <tbody id="assetTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

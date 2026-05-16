@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: crypto-pulse-dashboard
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: REFRESH_INTERVAL_MINUTES
+        value: "360"
