@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/static/style.css" />
@@ -15,75 +15,94 @@
     <script defer src="/static/app.js"></script>
   </head>
   <body>
-    <div class="aurora aurora-left"></div>
-    <div class="aurora aurora-right"></div>
     <main class="page-shell">
-      <section class="hero panel">
-        <div>
-          <p class="eyebrow">Deployment of a dashboard with its own data pipeline</p>
+      <section class="topbar panel">
+        <div class="brand-block">
+          <p class="eyebrow">Crypto market dashboard</p>
           <h1>Crypto Pulse</h1>
           <p class="hero-copy">
-            A public-market dashboard for following price momentum, correlation, and leadership shifts across major crypto assets.
+            Follow major crypto assets, compare them against Nasdaq and the Dow, and scan the latest crypto headlines without jumping between tabs.
           </p>
         </div>
-        <div class="hero-actions">
-          <button id="refreshButton" class="refresh-button">Run Refresh</button>
-          <div class="status-block">
+        <div class="topbar-actions">
+          <div class="button-row">
+            <button id="refreshButton" class="primary-button">Refresh Market Data</button>
+            <button id="refreshNewsButton" class="secondary-button">Refresh News</button>
+          </div>
+          <div class="status-stack">
             <span id="lastUpdated">Loading latest pipeline status...</span>
-            <span id="pipelineSource" class="status-chip"></span>
+            <div class="status-row">
+              <span id="pipelineSource" class="status-chip"></span>
+              <span id="benchmarkSource" class="status-chip"></span>
+              <span id="newsSource" class="status-chip"></span>
+            </div>
           </div>
         </div>
       </section>
 
       <section id="metricCards" class="card-grid"></section>
 
-      <section class="two-column-grid">
+      <section class="content-grid">
         <article class="panel chart-panel">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">30-day history</p>
-              <h2>Tracked asset price curves</h2>
+              <p class="eyebrow">Performance view</p>
+              <h2>30-day relative performance</h2>
             </div>
+            <p class="section-note">Start = 100, so Bitcoin no longer flattens smaller-priced assets.</p>
           </div>
-          <canvas id="historyChart"></canvas>
+          <canvas id="comparisonChart"></canvas>
+          <p class="panel-footnote">Crypto trades daily. Nasdaq and Dow update on U.S. trading days.</p>
         </article>
 
-        <article class="panel chart-panel">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Market structure</p>
-              <h2>Market cap vs 24h movement</h2>
+        <div class="side-stack">
+          <article class="panel">
+            <div class="section-heading compact-heading">
+              <div>
+                <p class="eyebrow">Benchmarks</p>
+                <h2>Nasdaq and Dow</h2>
+              </div>
             </div>
-          </div>
-          <canvas id="scatterChart"></canvas>
-        </article>
+            <div id="benchmarkCards" class="benchmark-grid"></div>
+          </article>
+
+          <article class="panel news-panel">
+            <div class="section-heading compact-heading">
+              <div>
+                <p class="eyebrow">Latest headlines</p>
+                <h2>Top 10 crypto news</h2>
+              </div>
+            </div>
+            <div id="newsFeed" class="news-list"></div>
+          </article>
+        </div>
       </section>
 
       <section class="two-column-grid">
         <article class="panel">
-          <div class="section-heading">
+          <div class="section-heading compact-heading">
             <div>
-              <p class="eyebrow">Leadership board</p>
-              <h2>Top gainers and laggards</h2>
+              <p class="eyebrow">24h movers</p>
+              <h2>Leaders and laggards</h2>
             </div>
           </div>
           <div class="leader-grid">
             <div>
-              <h3>24h Gainers</h3>
+              <h3>Top gainers</h3>
               <div id="gainersList" class="leader-list"></div>
             </div>
             <div>
-              <h3>24h Laggards</h3>
+              <h3>Top laggards</h3>
               <div id="laggardsList" class="leader-list"></div>
             </div>
           </div>
         </article>
 
         <article class="panel">
-          <div class="section-heading">
+          <div class="section-heading compact-heading">
             <div>
               <p class="eyebrow">Correlation map</p>
-              <h2>How the tracked assets move together</h2>
+              <h2>Tracked crypto assets</h2>
             </div>
           </div>
           <div id="correlationHeatmap" class="heatmap"></div>
@@ -91,10 +110,10 @@
       </section>
 
       <section class="panel">
-        <div class="section-heading">
+        <div class="section-heading compact-heading">
           <div>
-            <p class="eyebrow">Asset table</p>
-            <h2>Latest market snapshot</h2>
+            <p class="eyebrow">Latest snapshot</p>
+            <h2>Crypto asset table</h2>
           </div>
         </div>
         <div class="table-shell">
@@ -107,7 +126,6 @@
                 <th>24h</th>
                 <th>7d</th>
                 <th>30d</th>
-                <th>Volatility</th>
                 <th>Market Cap</th>
               </tr>
             </thead>

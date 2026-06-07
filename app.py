@@ -13,6 +13,7 @@ from urllib.parse import parse_qs, urlparse
 
 from src.analytics import build_correlation, build_history, build_leaders, build_summary
 from src.db import DashboardRepository
+from src.market_feeds import MarketFeedService
 from src.pipeline import PipelineService
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -25,6 +26,7 @@ PORT = int(os.environ.get("PORT", "8000"))
 
 repository = DashboardRepository(DATABASE_PATH)
 pipeline = PipelineService(repository)
+market_feeds = MarketFeedService()
 
 
 def pipeline_status_payload() -> dict[str, str | int | None]:
@@ -83,6 +85,17 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/pipeline/status":
             self._send_json(pipeline_status_payload())
             return
+        if parsed.path == "/api/benchmarks":
+            self._send_json(market_feeds.load_benchmarks())
+            return
+        if parsed.path == "/api/news":
+            limit = parse_qs(parsed.query).get("limit", ["10"])[0]
+            try:
+                news_limit = max(1, min(20, int(limit)))
+            except ValueError:
+                news_limit = 10
+            self._send_json(market_feeds.load_news(limit=news_limit))
+            return
         if parsed.path == "/api/assets":
             snapshot_rows = [dict(row) for row in repository.latest_snapshot_rows()]
             symbol = parse_qs(parsed.query).get("symbol", [None])[0]
@@ -125,7 +138,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
-    def _send_json(self, payload: dict[str, object], status: HTTPStatus = HTTPStatus.OK) -> None:
+    def _send_json(self, payload: object, status: HTTPStatus = HTTPStatus.OK) -> None:
         encoded = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
