@@ -65,7 +65,11 @@ async function runNewsRefresh() {
     const news = await fetchJson("/api/news?limit=10");
     renderNews(news.items || []);
     renderNewsSource(news);
-    button.textContent = "Refresh Complete";
+    button.textContent = news.warning
+      ? news.is_live === false
+        ? "Using Cached News"
+        : "Used Backup Feed"
+      : "Refresh Complete";
   } catch (error) {
     button.textContent = "Refresh Failed";
     console.error(error);
@@ -409,7 +413,7 @@ function buildSourceLabel(prefix, source, warning) {
   if (!source) {
     return `${prefix}: unavailable`;
   }
-  return warning ? `${prefix}: ${source} (cached)` : `${prefix}: ${source}`;
+  return warning ? `${prefix}: ${source} (degraded)` : `${prefix}: ${source}`;
 }
 
 function truncate(value, maxLength) {

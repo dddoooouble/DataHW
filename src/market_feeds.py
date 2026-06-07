@@ -24,6 +24,19 @@ GOOGLE_FINANCE_QUOTES = [
     },
 ]
 COINDESK_RSS_URL = "https://www.coindesk.com/arc/outboundfeeds/rss/"
+COINTELEGRAPH_RSS_URL = "https://cointelegraph.com/rss"
+NEWS_FEEDS = [
+    {
+        "label": "CoinDesk RSS",
+        "url": COINDESK_RSS_URL,
+        "default_source": "CoinDesk",
+    },
+    {
+        "label": "Cointelegraph RSS",
+        "url": COINTELEGRAPH_RSS_URL,
+        "default_source": "Cointelegraph",
+    },
+]
 
 
 def _clean_text(value: str | None) -> str:
@@ -105,52 +118,72 @@ class MarketFeedService:
             }
 
     def load_news(self, limit: int = 10) -> dict[str, Any]:
+        failures: list[str] = []
         try:
-            xml_payload = self._fetch_text(COINDESK_RSS_URL)
-            root = ET.fromstring(xml_payload)
+            for feed in NEWS_FEEDS:
+                try:
+                    items = self._fetch_news_from_rss(feed["url"], feed["default_source"], limit)
+                except Exception as error:  # noqa: BLE001
+                    failures.append(f"{feed['label']}: {error}")
+                    continue
 
-            items = []
-            for item in root.findall("./channel/item")[:limit]:
-                description = _clean_text(item.findtext("description"))
-                published_at = item.findtext("pubDate")
-                author = item.findtext("{http://purl.org/dc/elements/1.1/}creator")
-                media = item.find("{http://search.yahoo.com/mrss/}content")
-                image = None if media is None else media.attrib.get("url")
+                payload = {
+                    "items": items,
+                    "source": feed["label"],
+                    "last_updated": datetime.now(UTC).isoformat(),
+                    "is_live": True,
+                }
+                self._news_cache = payload
+                if failures:
+                    payload["warning"] = f"Primary source fallback used after: {'; '.join(failures)}"
+                return payload
 
-                published_iso = None
-                if published_at:
-                    parsed = parsedate_to_datetime(published_at)
-                    published_iso = parsed.astimezone(UTC).isoformat()
-
-                items.append(
-                    {
-                        "title": _clean_text(item.findtext("title")),
-                        "link": item.findtext("link"),
-                        "summary": description,
-                        "source": author or "CoinDesk",
-                        "published_at": published_iso,
-                        "image": image,
-                    }
-                )
-
-            payload = {
-                "items": items,
-                "source": "CoinDesk RSS",
-                "last_updated": datetime.now(UTC).isoformat(),
-            }
-            self._news_cache = payload
-            return payload
+            raise ValueError("; ".join(failures) or "No news feed returned any items")
         except Exception as error:  # noqa: BLE001
             if self._news_cache is not None:
                 cached = dict(self._news_cache)
                 cached["warning"] = f"Live news refresh failed: {error}"
+                cached["is_live"] = False
                 return cached
             return {
                 "items": [],
-                "source": "CoinDesk RSS",
+                "source": "Crypto RSS feeds",
                 "last_updated": datetime.now(UTC).isoformat(),
                 "warning": f"Live news refresh failed: {error}",
+                "is_live": False,
             }
+
+    def _fetch_news_from_rss(self, url: str, default_source: str, limit: int) -> list[dict[str, Any]]:
+        xml_payload = self._fetch_text(url)
+        root = ET.fromstring(xml_payload)
+
+        items = []
+        for item in root.findall("./channel/item")[:limit]:
+            description = _clean_text(item.findtext("description"))
+            published_at = item.findtext("pubDate")
+            author = item.findtext("{http://purl.org/dc/elements/1.1/}creator")
+            media = item.find("{http://search.yahoo.com/mrss/}content")
+            image = None if media is None else media.attrib.get("url")
+
+            published_iso = None
+            if published_at:
+                parsed = parsedate_to_datetime(published_at)
+                published_iso = parsed.astimezone(UTC).isoformat()
+
+            items.append(
+                {
+                    "title": _clean_text(item.findtext("title")),
+                    "link": item.findtext("link"),
+                    "summary": description,
+                    "source": author or default_source,
+                    "published_at": published_iso,
+                    "image": image,
+                }
+            )
+
+        if not items:
+            raise ValueError(f"No items found in RSS feed: {url}")
+        return items
 
     def _fetch_text(self, url: str) -> str:
         response = subprocess.run(
@@ -161,6 +194,11 @@ class MarketFeedService:
                 "-L",
                 "--silent",
                 "--show-error",
+                "--retry",
+                "2",
+                "--retry-delay",
+                "1",
+                "--retry-all-errors",
                 "--max-time",
                 "20",
                 url,
