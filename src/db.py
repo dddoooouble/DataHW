@@ -155,6 +155,18 @@ class DashboardRepository:
                 """
             ).fetchone()
 
+    def recent_runs(self, limit: int = 5) -> list[sqlite3.Row]:
+        with self.connect() as connection:
+            return connection.execute(
+                """
+                SELECT *
+                FROM pipeline_runs
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+
     def latest_snapshot_rows(self) -> list[sqlite3.Row]:
         latest = self.latest_successful_run()
         if latest is None:

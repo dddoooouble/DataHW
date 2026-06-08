@@ -1,28 +1,21 @@
 # Executive Summary: Crypto Pulse Dashboard
 
-## Project overview
+## Project goal
 
-Crypto Pulse is a public web dashboard that monitors the market structure of a curated basket of major cryptocurrencies. The goal is to give a fast decision-oriented view of which assets are leading, which are weakening, and how tightly key coins move together. The dashboard focuses on ranked basket snapshots, 30-day price history, short-term leadership shifts, and return correlation across tracked assets such as Bitcoin, Ethereum, Solana, Dogecoin, and Cardano.
+Crypto Pulse is a public web application that tracks a curated basket of major cryptocurrencies and summarizes market conditions in a dashboard that is easy to present in class. The system is designed to answer four questions quickly: Which assets are leading, which are weakening, how concentrated the market is, and whether the basket is moving together or diverging. The project intentionally uses a custom web stack instead of business intelligence tools, so it stays within the assignment rules.
 
-## Data pipeline and architecture
+## Data pipeline and back-end
 
-The system uses a Python ETL pipeline connected to the CoinGecko public API. In the **extract** step, the pipeline downloads the latest 12-asset dashboard basket plus 30-day daily histories for selected assets. In the **transform** step, it calculates 24-hour and 7-day changes, 30-day returns, average trading volume, and 30-day volatility. It also prepares daily return series used to build a correlation matrix. In the **load** step, the transformed data is written into a SQLite database with three tables: `pipeline_runs`, `asset_snapshots`, and `daily_prices`.
+The back-end is a Python ETL pipeline connected to the CoinGecko public API. In the **extract** stage, the pipeline downloads the latest market snapshot for twelve dashboard assets and thirty days of daily history for the focus assets used in trend and correlation views. In the **transform** stage, it calculates 24-hour and 7-day price changes, 30-day returns, 30-day volatility, average trading volume, breadth signals, concentration metrics, and return series for correlation analysis. In the **load** stage, the transformed results are stored in SQLite tables for pipeline runs, latest snapshots, and daily price history. This structure makes the app more than a one-time visualization because the data is cleaned, persisted, and reusable across refreshes.
 
-The web application serves both the dashboard front-end and the back-end API. The front-end is built with custom HTML, CSS, JavaScript, and Chart.js rather than Tableau or Power BI, which keeps the solution aligned with the project rules. The back-end exposes JSON endpoints for summary cards, asset tables, historical series, leaders/laggards, and correlation data.
+## Dashboard and communication value
 
-## Dashboard features
+The front-end is built with custom HTML, CSS, JavaScript, and Chart.js, not Tableau or Power BI. The dashboard includes KPI cards, a normalized 30-day performance chart, benchmark comparison against Nasdaq and the Dow, an insight panel for breadth and regime signals, a leaders/laggards section, a crypto correlation heatmap, a live news feed, and a detailed asset table. It also includes a pipeline monitor showing run status, refresh timing, record counts, and recent ETL history, which makes the back-end work visible during the demo instead of hiding it behind charts.
 
-The dashboard includes four major views:
+## Refresh mechanism and deployment
 
-1. KPI cards summarizing total tracked market capitalization, average 30-day return, best 24-hour performer, and weakest 24-hour performer.
-2. A multi-series line chart showing 30-day price curves for the tracked assets.
-3. A scatter plot comparing market capitalization against 24-hour price change, which helps distinguish large stable assets from smaller high-momentum assets.
-4. A correlation heatmap and leadership board to explain whether assets are moving together and which ones currently lead or lag.
+The application supports three refresh behaviors. First, it loads data automatically on startup. Second, it runs scheduled freshness checks in the background and refreshes stale data. Third, it provides a manual refresh button so the pipeline can be triggered live during a presentation. The project is configured for Render deployment, so the final demonstration can use a public URL rather than localhost, satisfying the assignment requirement for a non-local hosted web app.
 
-## Refresh and deployment
+## Grading alignment
 
-The application supports three refresh behaviors. First, it runs the ETL pipeline automatically at startup. Second, it checks data freshness on a recurring timer and refreshes stale data in the background. Third, it provides a manual refresh button in the dashboard for live demos. For deployment, the project is packaged for Render, which provides a public URL suitable for the required in-class demonstration without relying on localhost.
-
-## Value and grading alignment
-
-This project aims to score well across all grading areas. The ETL component is more than a simple file load because it integrates external API extraction, transformation into derived metrics, and structured persistence. The visualization layer combines multiple chart types and an explanatory table instead of a single graph. The refresh mechanism is explicit and demonstrable. Finally, the architecture and summary are designed to communicate clearly during the executive summary submission and in-class presentation.
+This project is strong across the rubric. For **Data Pipeline / ETL / Data Wrangling**, it integrates live API extraction, derived indicators, persistence, and pipeline run logging. For **Visualization**, it combines several coordinated views instead of a single chart. For **Data Refresh Mechanism**, it offers startup seeding, scheduled freshness checks, and manual refresh. For **Communicate**, it includes a concise executive summary, a clean dashboard narrative, and deployment packaging that supports a clear in-class presentation with a real URL.

@@ -10,6 +10,7 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
   currency: "USD",
   maximumFractionDigits: 0,
 });
+const seriesDisplayOrder = ["BTC", "ETH", "XRP", "SOL", "ADA", "DOGE", "IXIC", "DJI"];
 
 document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("refreshButton").addEventListener("click", runRefresh);
@@ -29,6 +30,8 @@ async function loadDashboard() {
   ]);
 
   renderMetricCards(summary.cards || []);
+  renderInsightTiles(summary.insights?.tiles || []);
+  renderPipelineMonitor(status);
   renderComparisonChart(history.series || [], benchmarks.series || []);
   renderBenchmarks(benchmarks.benchmarks || []);
   renderNews(news.items || []);
@@ -109,10 +112,10 @@ function renderMetricCards(cards) {
 
 function renderComparisonChart(cryptoSeries, benchmarkSeries) {
   const ctx = document.getElementById("comparisonChart");
-  const allSeries = [
+  const allSeries = sortSeriesForDisplay([
     ...cryptoSeries.map((series) => ({ ...series, kind: "crypto" })),
     ...benchmarkSeries.map((series) => ({ ...series, kind: "benchmark" })),
-  ];
+  ]);
   const labels = [...new Set(allSeries.flatMap((series) => series.points.map((point) => point.date)))].sort();
   const palette = ["#0f766e", "#d97706", "#1d4ed8", "#be123c", "#6d28d9", "#5b5bd6", "#8b5e34"];
 
@@ -198,6 +201,65 @@ function renderBenchmarks(benchmarks) {
             <span>Range ${formatIndexValue(benchmark.range_30d_low)} - ${formatIndexValue(benchmark.range_30d_high)}</span>
           </div>
         </article>
+      `;
+    })
+    .join("");
+}
+
+function renderInsightTiles(tiles) {
+  const container = document.getElementById("insightTiles");
+  if (!tiles.length) {
+    container.innerHTML = `<div class="empty-state">Derived market signals are not available yet.</div>`;
+    return;
+  }
+
+  container.innerHTML = tiles
+    .map((tile) => {
+      const tone = toneClassName(tile.tone);
+      return `
+        <article class="insight-tile">
+          <div class="insight-label">${escapeHtml(tile.label || "Insight")}</div>
+          <div class="insight-value">${escapeHtml(tile.value || "-")}</div>
+          <div class="insight-detail ${tone}">${escapeHtml(tile.detail || "")}</div>
+          ${tile.footnote ? `<div class="insight-footnote">${escapeHtml(tile.footnote)}</div>` : ""}
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderPipelineMonitor(status) {
+  const freshnessBadge = document.getElementById("freshnessBadge");
+  freshnessBadge.className = `monitor-badge ${toneClassName(freshnessTone(status.freshness))}`;
+  freshnessBadge.textContent = buildFreshnessLabel(status);
+
+  const meta = document.getElementById("pipelineMonitorMeta");
+  meta.innerHTML = `
+    <span>Last success: ${status.last_finished_at ? formatDateTime(status.last_finished_at) : "Unavailable"}</span>
+    <span>Next due: ${status.next_refresh_due_at ? formatDateTime(status.next_refresh_due_at) : "Unavailable"}</span>
+    <span>Last load: ${formatRecordsLoaded(status.records_loaded)}</span>
+    <span>Interval: every ${escapeHtml(String(status.refresh_interval_minutes ?? "-"))} min</span>
+  `;
+
+  const body = document.getElementById("pipelineRunsBody");
+  const runs = status.recent_runs || [];
+  if (!runs.length) {
+    body.innerHTML = `<tr><td colspan="5" class="muted-cell">No pipeline runs recorded yet.</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = runs
+    .map((run) => {
+      const tone = toneClassName(run.status === "success" ? "positive" : run.status === "failed" ? "negative" : "neutral");
+      const finishedText = run.run_finished_at ? formatDateTime(run.run_finished_at) : "Running...";
+      return `
+        <tr>
+          <td>#${escapeHtml(String(run.id ?? "-"))}</td>
+          <td class="${tone}">${escapeHtml(String(run.status ?? "-"))}</td>
+          <td>${escapeHtml(String(run.source ?? "-"))}</td>
+          <td>${formatRecordsLoaded(run.records_loaded)}</td>
+          <td title="${escapeAttribute(run.message || "")}">${finishedText}</td>
+        </tr>
       `;
     })
     .join("");
@@ -315,7 +377,7 @@ function renderCorrelation(correlation) {
 function renderStatus(summary, status, benchmarks, news) {
   const summaryTime = summary.last_updated || status.last_finished_at;
   document.getElementById("lastUpdated").textContent = summaryTime
-    ? `Market data updated ${formatDateTime(summaryTime)}`
+    ? `Market data updated ${formatDateTime(summaryTime)} · ${buildFreshnessLabel(status)}`
     : "No pipeline run recorded yet.";
 
   document.getElementById("pipelineSource").textContent = buildSourceLabel("Crypto", status.source, null);
@@ -341,6 +403,16 @@ function buildNormalizedPointMap(points) {
     normalized.set(point.date, (Number(point.price) / base) * 100);
   });
   return normalized;
+}
+
+function sortSeriesForDisplay(seriesCollection) {
+  return [...seriesCollection].sort((left, right) => {
+    const leftIndex = seriesDisplayOrder.indexOf(left.symbol);
+    const rightIndex = seriesDisplayOrder.indexOf(right.symbol);
+    const normalizedLeft = leftIndex === -1 ? seriesDisplayOrder.length : leftIndex;
+    const normalizedRight = rightIndex === -1 ? seriesDisplayOrder.length : rightIndex;
+    return normalizedLeft - normalizedRight;
+  });
 }
 
 function formatValue(value, format) {
@@ -414,6 +486,49 @@ function buildSourceLabel(prefix, source, warning) {
     return `${prefix}: unavailable`;
   }
   return warning ? `${prefix}: ${source} (degraded)` : `${prefix}: ${source}`;
+}
+
+function buildFreshnessLabel(status) {
+  if (!status || !status.freshness) {
+    return "Pipeline freshness unavailable";
+  }
+  if (status.freshness === "fresh") {
+    return `Fresh data (${status.age_minutes ?? 0} min old)`;
+  }
+  if (status.freshness === "aging") {
+    return `Refresh due soon (${status.age_minutes ?? 0} min old)`;
+  }
+  if (status.freshness === "stale") {
+    return `Refresh overdue (${status.age_minutes ?? 0} min old)`;
+  }
+  if (status.freshness === "sample") {
+    return "Sample fallback data in use";
+  }
+  return "Waiting for first successful run";
+}
+
+function freshnessTone(freshness) {
+  if (freshness === "fresh") {
+    return "positive";
+  }
+  if (freshness === "stale") {
+    return "negative";
+  }
+  return "neutral";
+}
+
+function toneClassName(tone) {
+  if (tone === "positive" || tone === "negative") {
+    return tone;
+  }
+  return "neutral";
+}
+
+function formatRecordsLoaded(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return "-";
+  }
+  return numberFormatter.format(Number(value));
 }
 
 function truncate(value, maxLength) {

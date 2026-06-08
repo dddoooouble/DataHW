@@ -23,6 +23,11 @@
           <p class="hero-copy">
             Follow major crypto assets, compare them against Nasdaq and the Dow, and scan the latest crypto headlines without jumping between tabs.
           </p>
+          <div class="hero-pills">
+            <span class="hero-pill">Extract: CoinGecko</span>
+            <span class="hero-pill">Load: SQLite snapshots</span>
+            <span class="hero-pill">Serve: Python API + Chart.js</span>
+          </div>
         </div>
         <div class="topbar-actions">
           <div class="button-row">
@@ -41,6 +46,49 @@
       </section>
 
       <section id="metricCards" class="card-grid"></section>
+
+      <section class="two-column-grid">
+        <article class="panel">
+          <div class="section-heading compact-heading">
+            <div>
+              <p class="eyebrow">Market texture</p>
+              <h2>What the basket says right now</h2>
+            </div>
+            <p class="section-note">These tiles summarize the ETL-derived breadth, concentration, momentum, and regime signals.</p>
+          </div>
+          <div id="insightTiles" class="insight-grid"></div>
+        </article>
+
+        <article class="panel">
+          <div class="section-heading compact-heading">
+            <div>
+              <p class="eyebrow">Pipeline monitor</p>
+              <h2>Refresh evidence for the demo</h2>
+            </div>
+            <p class="section-note">Use this section to show the back-end is running scheduled freshness checks and manual refreshes.</p>
+          </div>
+          <div class="pipeline-monitor">
+            <div class="monitor-summary">
+              <span id="freshnessBadge" class="monitor-badge">Waiting for pipeline status...</span>
+              <div id="pipelineMonitorMeta" class="monitor-meta"></div>
+            </div>
+            <div class="table-shell pipeline-shell">
+              <table class="pipeline-table">
+                <thead>
+                  <tr>
+                    <th>Run</th>
+                    <th>Status</th>
+                    <th>Source</th>
+                    <th>Records</th>
+                    <th>Finished</th>
+                  </tr>
+                </thead>
+                <tbody id="pipelineRunsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </article>
+      </section>
 
       <section class="content-grid">
         <article class="panel chart-panel">

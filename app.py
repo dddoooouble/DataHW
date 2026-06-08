@@ -5,7 +5,7 @@ import logging
 import mimetypes
 import os
 import threading
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -23,22 +23,60 @@ STATIC_DIR = BASE_DIR / "static"
 DATABASE_PATH = Path(os.environ.get("DATABASE_PATH", BASE_DIR / "data" / "crypto_pulse.db"))
 REFRESH_INTERVAL_MINUTES = int(os.environ.get("REFRESH_INTERVAL_MINUTES", "360"))
 PORT = int(os.environ.get("PORT", "8000"))
+PIPELINE_MONITOR_LIMIT = 6
+VISUAL_ASSET_IDS = {"bitcoin", "ethereum", "ripple", "solana", "cardano", "dogecoin"}
+CORRELATION_ASSET_IDS = {"bitcoin", "ethereum", "ripple", "solana", "cardano", "dogecoin"}
 
 repository = DashboardRepository(DATABASE_PATH)
 pipeline = PipelineService(repository)
 market_feeds = MarketFeedService()
 
 
-def pipeline_status_payload() -> dict[str, str | int | None]:
+def serialize_run(row: dict[str, object] | None) -> dict[str, object] | None:
+    if row is None:
+        return None
+    return {
+        "id": row["id"],
+        "status": row["status"],
+        "source": row["source"],
+        "message": row["message"],
+        "run_started_at": row["run_started_at"],
+        "run_finished_at": row["run_finished_at"],
+        "records_loaded": row["records_loaded"],
+    }
+
+
+def pipeline_status_payload() -> dict[str, object]:
     latest = repository.latest_run()
     successful = repository.latest_successful_run()
+    recent_runs = [serialize_run(dict(row)) for row in repository.recent_runs(PIPELINE_MONITOR_LIMIT)]
+    age_minutes = None
+    next_refresh_due_at = None
+    freshness = "empty"
+    if successful is not None:
+        finished_at = datetime.fromisoformat(successful["run_finished_at"])
+        age_minutes = round((datetime.now(UTC) - finished_at).total_seconds() / 60, 1)
+        next_refresh_due_at = (finished_at + timedelta(minutes=REFRESH_INTERVAL_MINUTES)).isoformat()
+        if successful["source"] == "sample":
+            freshness = "sample"
+        elif age_minutes < REFRESH_INTERVAL_MINUTES / 2:
+            freshness = "fresh"
+        elif age_minutes < REFRESH_INTERVAL_MINUTES:
+            freshness = "aging"
+        else:
+            freshness = "stale"
     return {
         "last_run_id": None if latest is None else latest["id"],
         "last_status": None if latest is None else latest["status"],
         "last_message": None if latest is None else latest["message"],
         "last_finished_at": None if successful is None else successful["run_finished_at"],
         "source": None if successful is None else successful["source"],
+        "records_loaded": None if successful is None else successful["records_loaded"],
         "refresh_interval_minutes": REFRESH_INTERVAL_MINUTES,
+        "age_minutes": age_minutes,
+        "freshness": freshness,
+        "next_refresh_due_at": next_refresh_due_at,
+        "recent_runs": recent_runs,
         "server_time": datetime.now(UTC).isoformat(),
     }
 
@@ -71,7 +109,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._send_json(summary)
             return
         if parsed.path == "/api/history":
-            history_rows = [dict(row) for row in repository.latest_history_rows()]
+            history_rows = [
+                dict(row)
+                for row in repository.latest_history_rows()
+                if row["asset_id"] in VISUAL_ASSET_IDS
+            ]
             self._send_json(build_history(history_rows))
             return
         if parsed.path == "/api/leaders":
@@ -79,7 +121,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._send_json(build_leaders(snapshot_rows))
             return
         if parsed.path == "/api/correlation":
-            history_rows = [dict(row) for row in repository.latest_history_rows()]
+            history_rows = [
+                dict(row)
+                for row in repository.latest_history_rows()
+                if row["asset_id"] in CORRELATION_ASSET_IDS
+            ]
             self._send_json(build_correlation(history_rows))
             return
         if parsed.path == "/api/pipeline/status":

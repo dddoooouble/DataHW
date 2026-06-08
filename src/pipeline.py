@@ -29,7 +29,7 @@ DASHBOARD_ASSETS = [
     "tron",
     "sui",
 ]
-TRACKED_ASSETS = ["bitcoin", "ethereum", "solana", "dogecoin", "cardano"]
+HISTORY_ASSETS = ["bitcoin", "ethereum", "ripple", "solana", "cardano", "dogecoin"]
 
 
 class PipelineService:
@@ -121,13 +121,13 @@ class PipelineService:
                 "per_page": str(len(DASHBOARD_ASSETS)),
                 "page": "1",
                 "sparkline": "false",
-                "price_change_percentage": "24h,7d",
+                "price_change_percentage": "24h,7d,30d",
             },
         )
 
         available_assets = {asset["id"] for asset in market_data}
         history_data: dict[str, Any] = {}
-        for asset_id in TRACKED_ASSETS:
+        for asset_id in HISTORY_ASSETS:
             if asset_id not in available_assets:
                 continue
             try:
@@ -211,7 +211,7 @@ class PipelineService:
                     "circulating_supply": asset.get("circulating_supply"),
                     "price_change_pct_24h": asset.get("price_change_percentage_24h_in_currency"),
                     "price_change_pct_7d": asset.get("price_change_percentage_7d_in_currency"),
-                    "return_pct_30d": metrics.get("return_pct_30d"),
+                    "return_pct_30d": metrics.get("return_pct_30d", asset.get("price_change_percentage_30d_in_currency")),
                     "volatility_pct_30d": metrics.get("volatility_pct_30d"),
                     "avg_volume_30d": metrics.get("avg_volume_30d"),
                     "ath": asset.get("ath"),
@@ -307,26 +307,12 @@ class PipelineService:
                 "ath_change_percentage": -24.24,
             },
             {
-                "id": "solana",
-                "symbol": "sol",
-                "name": "Solana",
-                "current_price": 244.5,
-                "market_cap": 118000000000,
-                "market_cap_rank": 4,
-                "total_volume": 5200000000,
-                "circulating_supply": 482000000,
-                "price_change_percentage_24h_in_currency": 4.93,
-                "price_change_percentage_7d_in_currency": 14.21,
-                "ath": 260.7,
-                "ath_change_percentage": -6.21,
-            },
-            {
                 "id": "binancecoin",
                 "symbol": "bnb",
                 "name": "BNB",
                 "current_price": 841.2,
                 "market_cap": 121000000000,
-                "market_cap_rank": 5,
+                "market_cap_rank": 4,
                 "total_volume": 2600000000,
                 "circulating_supply": 144000000,
                 "price_change_percentage_24h_in_currency": 0.88,
@@ -335,26 +321,12 @@ class PipelineService:
                 "ath_change_percentage": -3.86,
             },
             {
-                "id": "dogecoin",
-                "symbol": "doge",
-                "name": "Dogecoin",
-                "current_price": 0.32,
-                "market_cap": 47000000000,
-                "market_cap_rank": 6,
-                "total_volume": 4100000000,
-                "circulating_supply": 147000000000,
-                "price_change_percentage_24h_in_currency": -1.45,
-                "price_change_percentage_7d_in_currency": 7.62,
-                "ath": 0.73,
-                "ath_change_percentage": -56.16,
-            },
-            {
                 "id": "ripple",
                 "symbol": "xrp",
                 "name": "XRP",
                 "current_price": 2.58,
                 "market_cap": 150000000000,
-                "market_cap_rank": 7,
+                "market_cap_rank": 5,
                 "total_volume": 3900000000,
                 "circulating_supply": 58100000000,
                 "price_change_percentage_24h_in_currency": 1.17,
@@ -363,18 +335,32 @@ class PipelineService:
                 "ath_change_percentage": -24.12,
             },
             {
-                "id": "usd-coin",
-                "symbol": "usdc",
-                "name": "USDC",
-                "current_price": 1.0,
-                "market_cap": 61000000000,
+                "id": "solana",
+                "symbol": "sol",
+                "name": "Solana",
+                "current_price": 244.5,
+                "market_cap": 118000000000,
+                "market_cap_rank": 6,
+                "total_volume": 5200000000,
+                "circulating_supply": 482000000,
+                "price_change_percentage_24h_in_currency": 4.93,
+                "price_change_percentage_7d_in_currency": 14.21,
+                "ath": 260.7,
+                "ath_change_percentage": -6.21,
+            },
+            {
+                "id": "dogecoin",
+                "symbol": "doge",
+                "name": "Dogecoin",
+                "current_price": 0.32,
+                "market_cap": 47000000000,
                 "market_cap_rank": 8,
-                "total_volume": 10600000000,
-                "circulating_supply": 60900000000,
-                "price_change_percentage_24h_in_currency": 0.0,
-                "price_change_percentage_7d_in_currency": 0.01,
-                "ath": 1.17,
-                "ath_change_percentage": -14.53,
+                "total_volume": 4100000000,
+                "circulating_supply": 147000000000,
+                "price_change_percentage_24h_in_currency": -1.45,
+                "price_change_percentage_7d_in_currency": 7.62,
+                "ath": 0.73,
+                "ath_change_percentage": -56.16,
             },
             {
                 "id": "cardano",
@@ -403,6 +389,20 @@ class PipelineService:
                 "price_change_percentage_7d_in_currency": 6.23,
                 "ath": 144.96,
                 "ath_change_percentage": -66.4,
+            },
+            {
+                "id": "tron",
+                "symbol": "trx",
+                "name": "TRON",
+                "current_price": 0.28,
+                "market_cap": 24100000000,
+                "market_cap_rank": 11,
+                "total_volume": 740000000,
+                "circulating_supply": 86400000000,
+                "price_change_percentage_24h_in_currency": 0.62,
+                "price_change_percentage_7d_in_currency": 2.11,
+                "ath": 0.43,
+                "ath_change_percentage": -34.88,
             },
             {
                 "id": "chainlink",
@@ -439,13 +439,18 @@ class PipelineService:
         sample_profiles = {
             "bitcoin": {"trend": 0.10, "amplitude": 0.03, "phase": 0.2, "volume_bias": 1.0},
             "ethereum": {"trend": 0.07, "amplitude": 0.05, "phase": 0.8, "volume_bias": 1.15},
-            "solana": {"trend": 0.15, "amplitude": 0.08, "phase": 1.4, "volume_bias": 1.35},
-            "dogecoin": {"trend": 0.18, "amplitude": 0.11, "phase": 2.1, "volume_bias": 1.55},
-            "cardano": {"trend": 0.12, "amplitude": 0.07, "phase": 2.7, "volume_bias": 1.2},
+            "tether": {"trend": 0.0, "amplitude": 0.0018, "phase": 0.5, "volume_bias": 0.95},
+            "binancecoin": {"trend": 0.05, "amplitude": 0.035, "phase": 1.0, "volume_bias": 0.92},
+            "ripple": {"trend": 0.09, "amplitude": 0.06, "phase": 1.5, "volume_bias": 1.08},
+            "solana": {"trend": 0.15, "amplitude": 0.08, "phase": 2.0, "volume_bias": 1.35},
+            "cardano": {"trend": 0.12, "amplitude": 0.07, "phase": 2.5, "volume_bias": 1.2},
+            "dogecoin": {"trend": 0.18, "amplitude": 0.11, "phase": 3.0, "volume_bias": 1.55},
+            "chainlink": {"trend": 0.10, "amplitude": 0.075, "phase": 3.4, "volume_bias": 1.02},
+            "avalanche-2": {"trend": 0.13, "amplitude": 0.095, "phase": 3.8, "volume_bias": 1.12},
+            "tron": {"trend": 0.04, "amplitude": 0.025, "phase": 4.2, "volume_bias": 0.82},
+            "sui": {"trend": 0.19, "amplitude": 0.12, "phase": 4.7, "volume_bias": 1.45},
         }
         for asset in seeds:
-            if asset["id"] not in TRACKED_ASSETS:
-                continue
             profile = sample_profiles[asset["id"]]
             prices = []
             market_caps = []
